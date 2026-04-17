@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+let places = JSON.parse(localStorage.getItem('places') || '[]');
+
+function updateCounter() {
+  const countries = new Set(places.map(p => p.country));
+  document.getElementById('countryCount').innerText = countries.size;
+}
+
+function addMarker(place) {
+  const marker = L.circleMarker([place.lat, place.lng], {
+    color: place.color,
+    radius: 8
+  }).addTo(map);
+
+  marker.bindPopup(`<b>${place.city}</b><br>${place.country}<br>${place.date || ''}`);
+  markers.push(marker);
+}
+
+function loadPlaces() {
+  places.forEach(addMarker);
+  updateCounter();
+}
+
+map.on('click', function(e) {
+  const country = countryInput.value;
+  const city = cityInput.value;
+  if (!country || !city) return alert('Введите данные');
+
+  const place = {
+    lat: e.latlng.lat,
+    lng: e.latlng.lng,
+    country,
+    city,
+    date: dateInput.value,
+    visits: visitsInput.value,
+    color: color.value
+  };
+
+  places.push(place);
+  addMarker(place);
+  updateCounter();
+});
+
+function saveData() {
+  localStorage.setItem('places', JSON.stringify(places));
+  alert('Сохранено');
+}
+
+function clearData() {
+  if (!confirm('Удалить всё?')) return;
+  localStorage.removeItem('places');
+  location.reload();
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(places)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'map.json';
+  a.click();
+}
+
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+      places = JSON.parse(reader.result);
+      localStorage.setItem('places', JSON.stringify(places));
+      location.reload();
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+loadPlaces();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+
+</body>
+</html>
