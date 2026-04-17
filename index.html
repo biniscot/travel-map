@@ -6,8 +6,6 @@
   <title>Travel Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <link rel="manifest" href="manifest.json">
-
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -34,32 +32,21 @@
     <option value="green">Зелёный</option>
   </select>
 
-  <button onclick="saveData()">💾 Сохранить</button>
-  <button onclick="exportData()">📥 Экспорт</button>
-  <button onclick="importData()">📤 Импорт</button>
   <button onclick="clearData()">🗑 Очистить</button>
 </div>
 
 <div id="map"></div>
 
 <script>
-// ✅ Инициализация карты
+// карта
 const map = L.map('map').setView([20, 0], 2);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// ✅ Данные
-let markers = [];
+// данные
 let places = JSON.parse(localStorage.getItem('places') || '[]');
 
-// ✅ ПЕРЕМЕННЫЕ (важно!)
-const countryInput = document.getElementById('country');
-const cityInput = document.getElementById('city');
-const dateInput = document.getElementById('date');
-const visitsInput = document.getElementById('visits');
-const color = document.getElementById('color');
-
-// ✅ Счётчик стран (без дублей)
+// обновление счётчика стран
 function updateCounter() {
   const countries = new Set(
     places.map(p => p.country.trim().toLowerCase())
@@ -67,44 +54,30 @@ function updateCounter() {
   document.getElementById('countryCount').innerText = countries.size;
 }
 
-// ✅ Добавление маркера
+// добавить точку
 function addMarker(place) {
-  const marker = L.circleMarker([place.lat, place.lng], {
+  L.circleMarker([place.lat, place.lng], {
     color: place.color,
     radius: 8
-  }).addTo(map);
-
-  marker.bindPopup(
-    `<b>${place.city}</b><br>${place.country}<br>${place.date || ''}`
-  );
-
-  markers.push(marker);
+  })
+  .addTo(map)
+  .bindPopup(`<b>${place.city}</b><br>${place.country}`);
 }
 
-// ✅ Загрузка данных
-function loadPlaces() {
-  places.forEach(addMarker);
-  updateCounter();
-}
+// загрузка
+places.forEach(addMarker);
+updateCounter();
 
-// ✅ КЛИК ПО КАРТЕ (теперь работает!)
+// клик по карте
 map.on('click', function(e) {
-  const country = countryInput.value.trim();
-  const city = cityInput.value.trim();
+  const country = document.getElementById('country').value.trim();
+  const city = document.getElementById('city').value.trim();
+  const date = document.getElementById('date').value;
+  const visits = document.getElementById('visits').value;
+  const color = document.getElementById('color').value;
 
   if (!country || !city) {
     alert('Введите страну и город');
-    return;
-  }
-
-  // ❌ защита от дублей
-  const exists = places.some(p =>
-    p.city.toLowerCase() === city.toLowerCase() &&
-    p.country.toLowerCase() === country.toLowerCase()
-  );
-
-  if (exists) {
-    alert("Это место уже добавлено");
     return;
   }
 
@@ -113,69 +86,26 @@ map.on('click', function(e) {
     lng: e.latlng.lng,
     country,
     city,
-    date: dateInput.value,
-    visits: visitsInput.value,
-    color: color.value
+    date,
+    visits,
+    color
   };
 
   places.push(place);
   addMarker(place);
   updateCounter();
+
+  localStorage.setItem('places', JSON.stringify(places));
 });
 
-// 💾 Сохранение
-function saveData() {
-  localStorage.setItem('places', JSON.stringify(places));
-  alert('Сохранено');
-}
-
-// 🗑 Очистка
+// очистка
 function clearData() {
   if (!confirm('Удалить всё?')) return;
   localStorage.removeItem('places');
   location.reload();
-}
-
-// 📥 Экспорт
-function exportData() {
-  const blob = new Blob([JSON.stringify(places)], {type: 'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'map.json';
-  a.click();
-}
-
-// 📤 Импорт
-function importData() {
-  const input = document.createElement('input');
-  input.type = 'file';
-
-  input.onchange = e => {
-    const file = e.target.files[0];
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      places = JSON.parse(reader.result);
-      localStorage.setItem('places', JSON.stringify(places));
-      location.reload();
-    };
-
-    reader.readAsText(file);
-  };
-
-  input.click();
-}
-
-// 🚀 Запуск
-loadPlaces();
-
-// 📱 PWA
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
 }
 </script>
 
 </body>
 </html>
 ```
-
