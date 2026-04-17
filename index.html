@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -42,44 +43,70 @@
 <div id="map"></div>
 
 <script>
+// ✅ Инициализация карты
 const map = L.map('map').setView([20, 0], 2);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
+// ✅ Данные
 let markers = [];
 let places = JSON.parse(localStorage.getItem('places') || '[]');
 
+// ✅ ПЕРЕМЕННЫЕ (важно!)
 const countryInput = document.getElementById('country');
 const cityInput = document.getElementById('city');
 const dateInput = document.getElementById('date');
 const visitsInput = document.getElementById('visits');
 const color = document.getElementById('color');
 
+// ✅ Счётчик стран (без дублей)
 function updateCounter() {
-  const countries = new Set(places.map(p => p.country));
+  const countries = new Set(
+    places.map(p => p.country.trim().toLowerCase())
+  );
   document.getElementById('countryCount').innerText = countries.size;
 }
 
+// ✅ Добавление маркера
 function addMarker(place) {
   const marker = L.circleMarker([place.lat, place.lng], {
     color: place.color,
     radius: 8
   }).addTo(map);
 
-  marker.bindPopup(`<b>${place.city}</b><br>${place.country}<br>${place.date || ''}`);
+  marker.bindPopup(
+    `<b>${place.city}</b><br>${place.country}<br>${place.date || ''}`
+  );
+
   markers.push(marker);
 }
 
+// ✅ Загрузка данных
 function loadPlaces() {
   places.forEach(addMarker);
   updateCounter();
 }
 
+// ✅ КЛИК ПО КАРТЕ (теперь работает!)
 map.on('click', function(e) {
-  const country = countryInput.value;
-  const city = cityInput.value;
+  const country = countryInput.value.trim();
+  const city = cityInput.value.trim();
 
-  if (!country || !city) return alert('Введите данные');
+  if (!country || !city) {
+    alert('Введите страну и город');
+    return;
+  }
+
+  // ❌ защита от дублей
+  const exists = places.some(p =>
+    p.city.toLowerCase() === city.toLowerCase() &&
+    p.country.toLowerCase() === country.toLowerCase()
+  );
+
+  if (exists) {
+    alert("Это место уже добавлено");
+    return;
+  }
 
   const place = {
     lat: e.latlng.lat,
@@ -96,17 +123,20 @@ map.on('click', function(e) {
   updateCounter();
 });
 
+// 💾 Сохранение
 function saveData() {
   localStorage.setItem('places', JSON.stringify(places));
   alert('Сохранено');
 }
 
+// 🗑 Очистка
 function clearData() {
   if (!confirm('Удалить всё?')) return;
   localStorage.removeItem('places');
   location.reload();
 }
 
+// 📥 Экспорт
 function exportData() {
   const blob = new Blob([JSON.stringify(places)], {type: 'application/json'});
   const a = document.createElement('a');
@@ -115,24 +145,31 @@ function exportData() {
   a.click();
 }
 
+// 📤 Импорт
 function importData() {
   const input = document.createElement('input');
   input.type = 'file';
+
   input.onchange = e => {
     const file = e.target.files[0];
     const reader = new FileReader();
+
     reader.onload = () => {
       places = JSON.parse(reader.result);
       localStorage.setItem('places', JSON.stringify(places));
       location.reload();
     };
+
     reader.readAsText(file);
   };
+
   input.click();
 }
 
+// 🚀 Запуск
 loadPlaces();
 
+// 📱 PWA
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js');
 }
@@ -140,3 +177,5 @@ if ('serviceWorker' in navigator) {
 
 </body>
 </html>
+```
+
